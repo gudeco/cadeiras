@@ -1,0 +1,1400 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Visualizador paramétrico de cadeiras com textura e cor percebida</title>
+  <script src="https://cdn.plot.ly/plotly-3.3.1.min.js"></script>
+  <style>
+    :root {
+      --fundo: #b8c7cd;
+      --fundo-cena: #c3ced3;
+      --grade: #a6b4bb;
+      --eixo: #68777f;
+      --texto-cena: #182027;
+      --painel: #050505;
+      --painel-2: #101010;
+      --linha-painel: #303030;
+      --texto: #f3f3f3;
+      --muted: #a7a7a7;
+      --campo: #151515;
+      --borda-campo: #555;
+      --acento: #6E9099;
+      --vermelho-medida: #a00000;
+      --verde-medida: #6E9099;
+      --azul-medida: #023363;
+      --magenta-medida: #b000a8;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--fundo);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #app {
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 380px;
+      background: var(--fundo);
+    }
+
+    #plotWrap {
+      min-width: 0;
+      min-height: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--fundo);
+    }
+
+    #chairPlot,
+    .plotly-graph-div {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    #painel {
+      width: 380px;
+      height: 100%;
+      overflow-y: auto;
+      background: var(--painel);
+      color: var(--texto);
+      border-left: 1px solid var(--linha-painel);
+      padding: 16px;
+      box-shadow: -16px 0 30px rgba(0,0,0,0.18);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 16px;
+      letter-spacing: .02em;
+      font-weight: 750;
+    }
+
+    .sub {
+      margin: 0 0 14px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: var(--muted);
+    }
+
+    details {
+      border-top: 1px solid var(--linha-painel);
+      padding: 12px 0;
+    }
+
+    summary {
+      cursor: pointer;
+      list-style: none;
+      font-size: 12px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      font-weight: 750;
+      color: #d9d9d9;
+      margin-bottom: 10px;
+    }
+
+    summary::-webkit-details-marker { display: none; }
+
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .campo {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .campo label,
+    .linha label {
+      font-size: 12px;
+      color: #e9e9e9;
+    }
+
+    input,
+    button,
+    select {
+      border-radius: 0;
+      color: var(--texto);
+      background: var(--campo);
+      border: 1px solid var(--borda-campo);
+      font: inherit;
+      font-size: 13px;
+      min-height: 34px;
+    }
+
+    input[type="number"],
+    input[type="text"] {
+      width: 100%;
+      padding: 7px 8px;
+    }
+
+    input[type="color"] {
+      width: 100%;
+      padding: 0;
+      height: 34px;
+    }
+
+    input[type="file"] {
+      width: 100%;
+      padding: 6px 8px;
+      color: var(--texto);
+      background: var(--campo);
+      border: 1px solid var(--borda-campo);
+    }
+
+    .status {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+      min-height: 1.35em;
+    }
+
+    .resultado-cor {
+      display: grid;
+      grid-template-columns: 28px 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .amostra-cor {
+      width: 28px;
+      height: 18px;
+      border: 1px solid #777;
+      background: #b95055;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      min-height: 18px;
+      accent-color: var(--acento);
+    }
+
+    button {
+      cursor: pointer;
+      padding: 9px 10px;
+      background: #111;
+    }
+
+    button:hover { background: #1f1f1f; }
+
+    .botao-principal {
+      width: 100%;
+      border-color: var(--acento);
+      background: #152025;
+      margin-bottom: 8px;
+      font-weight: 650;
+    }
+
+    .linha {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-height: 32px;
+      border-bottom: 1px solid #171717;
+    }
+
+    .linha:last-child { border-bottom: 0; }
+
+    .nota {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .separador {
+      margin: 12px 0 8px;
+      padding-top: 10px;
+      border-top: 1px solid #252525;
+      color: #d7d7d7;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    #abrirPainel {
+      display: none;
+      position: fixed;
+      right: 12px;
+      bottom: 12px;
+      z-index: 20;
+      background: #050505;
+      border: 1px solid #555;
+      color: #fff;
+      border-radius: 0;
+      padding: 10px 12px;
+    }
+
+    @media (max-width: 900px) {
+      #app { display: block; }
+      #plotWrap {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+      }
+      #painel {
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: min(92vw, 380px);
+        transform: translateX(101%);
+        transition: transform .18s ease;
+        z-index: 15;
+      }
+      body.painel-aberto #painel { transform: translateX(0); }
+      #abrirPainel { display: block; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <main id="plotWrap">
+      <div id="chairPlot"></div>
+    </main>
+
+    <aside id="painel">
+      <h1>Parâmetros, tecidos e cores</h1>
+      <p class="sub">Modelo gerado diretamente no navegador. Valores em centímetros, como no código original. Agora também dá para testar tecidos no topo e nas laterais da almofada.</p>
+
+      <details open>
+        <summary>Visualização</summary>
+        <button id="atualizarBtn" class="botao-principal" type="button">Atualizar modelo</button>
+        <div class="grid2">
+          <button id="resetBtn" type="button">Redefinir vista</button>
+          <button id="ocultarMedidasBtn" type="button">Ocultar medidas</button>
+        </div>
+        <p class="nota">Arraste para girar. Use a roda do mouse ou gesto de pinça para aproximar.</p>
+      </details>
+
+      <details open>
+        <summary>Cor da almofada</summary>
+        <div class="grid2">
+          <div class="campo">
+            <label for="corAlmofada">Seletor</label>
+            <input id="corAlmofada" type="color" value="#b95055">
+          </div>
+          <div class="campo">
+            <label for="hexAlmofada">Hex</label>
+            <input id="hexAlmofada" type="text" value="#b95055">
+          </div>
+        </div>
+      </details>
+
+      <details open>
+        <summary>Textura da almofada</summary>
+        <label class="linha">
+          <span>Usar textura no assento</span>
+          <input id="usarTextura" type="checkbox">
+        </label>
+        <div class="campo">
+          <label for="arquivoTextura">Carregar imagem do tecido</label>
+          <input id="arquivoTextura" type="file" accept="image/*">
+        </div>
+        <div class="campo">
+          <label for="urlTextura">Ou colar URL direta da imagem</label>
+          <input id="urlTextura" type="text" placeholder="https://...jpg ou https://...png">
+        </div>
+        <div class="grid2">
+          <button id="carregarUrlTexturaBtn" type="button">Carregar URL</button>
+          <button id="limparTexturaBtn" type="button">Remover textura</button>
+        </div>
+        <button id="usarCorMediaTexturaBtn" class="botao-principal" type="button" style="margin-top: 8px;">Usar cor percebida da textura</button>
+        <div class="resultado-cor">
+          <span id="amostraCorTextura" class="amostra-cor"></span>
+          <span id="valorCorTextura">Cor percebida: nenhuma textura carregada.</span>
+        </div>
+        <div class="grid2" style="margin-top: 8px;">
+          <div class="campo">
+            <label for="repeticaoTextura">Repetição</label>
+            <input id="repeticaoTextura" type="number" value="1.0" min="0.2" max="12" step="0.1">
+          </div>
+          <div class="campo">
+            <label for="resolucaoTextura">Resolução</label>
+            <input id="resolucaoTextura" type="number" value="30" min="8" max="80" step="1">
+          </div>
+        </div>
+        <div id="statusTextura" class="status">Nenhuma textura carregada. A textura será aplicada no topo e nas laterais da almofada.</div>
+        <p class="nota">Você pode usar uma cor sólida, aplicar a textura diretamente, ou extrair uma cor percebida da textura. Para imagens da Wiler, o método mais confiável é salvar a foto do tecido e carregá-la aqui. Colar uma URL direta também pode funcionar, mas alguns sites bloqueiam leitura de imagem por CORS.</p>
+      </details>
+
+      <details open>
+        <summary>Cadeira 143 cm</summary>
+        <div id="camposA"></div>
+      </details>
+
+      <details open>
+        <summary>Cadeira 150 cm</summary>
+        <div id="camposB"></div>
+      </details>
+
+      <details>
+        <summary>Parâmetros globais</summary>
+        <div class="campo">
+          <label for="espacamento_cm">Espaçamento entre cadeiras (cm)</label>
+          <input id="espacamento_cm" type="number" value="55" step="1">
+        </div>
+        <div class="campo">
+          <label for="fator_raio_circulo_grade">Fator raio do círculo da grade</label>
+          <input id="fator_raio_circulo_grade" type="number" value="0.14" step="0.01">
+        </div>
+        <div class="campo">
+          <label for="fator_seguranca_corte_circulo_grade">Fator segurança corte círculo</label>
+          <input id="fator_seguranca_corte_circulo_grade" type="number" value="0.55" step="0.01">
+        </div>
+        <div class="campo">
+          <label for="fracao_sobreposicao_diagonal_anel">Sobreposição diagonal/anel</label>
+          <input id="fracao_sobreposicao_diagonal_anel" type="number" value="0.58" step="0.01">
+        </div>
+      </details>
+
+      <details open>
+        <summary>Adicionar/remover elementos</summary>
+        <div id="elementos"></div>
+      </details>
+    </aside>
+  </div>
+
+  <button id="abrirPainel" type="button">Painel</button>
+
+  <script>
+    const CM = 10.0;
+    const plotDiv = document.getElementById("chairPlot");
+    let medidasVisiveis = true;
+    let texturaCanvas = null;
+    let texturaCtx = null;
+    let texturaNome = "";
+
+    const defaultsA = {
+      rotulo: "versao 143 cm",
+      altura_total_cm: 143,
+      altura_assento_cm: 43,
+      largura_frontal_assento_cm: 39,
+      largura_traseira_assento_cm: 30,
+      profundidade_assento_cm: 36,
+      largura_encosto_cm: 30,
+      espessura_haste_cm: 1.8,
+      espessura_haste_fina_cm: 1.2,
+      espessura_almofada_cm: 4.0,
+      recuo_almofada_cm: 1.2,
+      circulo_no_meio_grade: false
+    };
+
+    const defaultsB = {
+      rotulo: "versao 150 cm",
+      altura_total_cm: 150,
+      altura_assento_cm: 43,
+      largura_frontal_assento_cm: 39,
+      largura_traseira_assento_cm: 30,
+      profundidade_assento_cm: 36,
+      largura_encosto_cm: 30,
+      espessura_haste_cm: 1.8,
+      espessura_haste_fina_cm: 1.2,
+      espessura_almofada_cm: 4.0,
+      recuo_almofada_cm: 1.2,
+      circulo_no_meio_grade: true
+    };
+
+    const campos = [
+      ["altura_total_cm", "Altura total"],
+      ["altura_assento_cm", "Altura do assento"],
+      ["largura_frontal_assento_cm", "Largura frontal do assento"],
+      ["largura_traseira_assento_cm", "Largura traseira do assento"],
+      ["profundidade_assento_cm", "Profundidade do assento"],
+      ["largura_encosto_cm", "Largura do encosto"],
+      ["espessura_haste_cm", "Espessura da haste"],
+      ["espessura_haste_fina_cm", "Espessura da haste fina"],
+      ["espessura_almofada_cm", "Espessura da almofada"],
+      ["recuo_almofada_cm", "Recuo da almofada"]
+    ];
+
+    const elementos = [
+      ["almofada", "almofada trapezoidal"],
+      ["assento_pernas", "pernas e travessas do assento"],
+      ["travessas_sob_assento", "travessas traseiras sob assento"],
+      ["travessas_laterais", "travessas laterais sob assento"],
+      ["moldura_encosto", "moldura do encosto"],
+      ["travessas_inferiores", "travessas inferiores do encosto"],
+      ["anel_superior", "anel superior"],
+      ["anel_inferior", "anel inferior"],
+      ["haste_central_continua", "haste central continua"],
+      ["barras_centrais", "barras centrais pequenas"],
+      ["diagonais", "diagonais do encosto"],
+      ["grade", "grade superior"],
+      ["circulo_grade", "círculo da grade"]
+    ];
+
+    function criarCampos(prefixo, alvo, defaults) {
+      const root = document.getElementById(alvo);
+      let html = '<div class="grid2">';
+      for (const [key, label] of campos) {
+        html += `
+          <div class="campo">
+            <label for="${prefixo}_${key}">${label} (cm)</label>
+            <input id="${prefixo}_${key}" type="number" value="${defaults[key]}" step="0.1">
+          </div>`;
+      }
+      html += '</div>';
+      html += `
+        <label class="linha">
+          <span>Círculo no meio da grade</span>
+          <input id="${prefixo}_circulo_no_meio_grade" type="checkbox" ${defaults.circulo_no_meio_grade ? "checked" : ""}>
+        </label>`;
+      root.innerHTML = html;
+    }
+
+    function criarElementos() {
+      const root = document.getElementById("elementos");
+      root.innerHTML = elementos.map(([key, label]) => `
+        <label class="linha">
+          <span>${label}</span>
+          <input class="elementoToggle" data-key="${key}" type="checkbox" checked>
+        </label>
+      `).join("");
+    }
+
+    criarCampos("A", "camposA", defaultsA);
+    criarCampos("B", "camposB", defaultsB);
+    criarElementos();
+
+    function valor(prefixo, key) {
+      const v = parseFloat(document.getElementById(`${prefixo}_${key}`).value);
+      return Number.isFinite(v) ? v : 0;
+    }
+
+    function lerCadeira(prefixo, defaults) {
+      const p = { rotulo: defaults.rotulo };
+      for (const [key] of campos) p[key] = valor(prefixo, key);
+      p.circulo_no_meio_grade = document.getElementById(`${prefixo}_circulo_no_meio_grade`).checked;
+      return p;
+    }
+
+    function lerGlobal(id, fallback) {
+      const v = parseFloat(document.getElementById(id).value);
+      return Number.isFinite(v) ? v : fallback;
+    }
+
+    function hexValido(v) {
+      return /^#[0-9a-fA-F]{6}$/.test(v);
+    }
+
+    function corAlmofada() {
+      const texto = document.getElementById("hexAlmofada").value.trim();
+      if (hexValido(texto)) return texto;
+      return document.getElementById("corAlmofada").value;
+    }
+
+    document.getElementById("corAlmofada").addEventListener("input", e => {
+      document.getElementById("hexAlmofada").value = e.target.value;
+      renderizar();
+    });
+
+    document.getElementById("hexAlmofada").addEventListener("change", e => {
+      if (hexValido(e.target.value.trim())) {
+        document.getElementById("corAlmofada").value = e.target.value.trim();
+      }
+      renderizar();
+    });
+
+    function add(a,b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+    function sub(a,b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+    function mul(a,s) { return [a[0]*s, a[1]*s, a[2]*s]; }
+    function dot(a,b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+    function cross(a,b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+    function norm(a) { return Math.sqrt(dot(a,a)); }
+    function normalize(a) { const n = norm(a); return n < 1e-9 ? [1,0,0] : mul(a, 1/n); }
+
+    const cubeFaces = [
+      [0,1,2], [0,2,3],
+      [4,6,5], [4,7,6],
+      [0,4,5], [0,5,1],
+      [1,5,6], [1,6,2],
+      [2,6,7], [2,7,3],
+      [3,7,4], [3,4,0]
+    ];
+
+    function hasteEntre(p1, p2, espessura) {
+      const vetor = sub(p2, p1);
+      const comprimento = norm(vetor);
+      if (comprimento < 1e-6) return null;
+
+      const ex = normalize(vetor);
+      let ref = Math.abs(dot(ex, [0,0,1])) > 0.92 ? [0,1,0] : [0,0,1];
+      const ey = normalize(cross(ref, ex));
+      const ez = normalize(cross(ex, ey));
+      const c = mul(add(p1, p2), 0.5);
+      const hx = comprimento / 2, hy = espessura / 2, hz = espessura / 2;
+      const verts = [];
+
+      for (const sx of [-1,1]) {
+        for (const sy of [-1,1]) {
+          for (const sz of [-1,1]) {
+            verts.push(add(add(add(c, mul(ex, sx*hx)), mul(ey, sy*hy)), mul(ez, sz*hz)));
+          }
+        }
+      }
+      return {vertices: verts, faces: cubeFaces};
+    }
+
+    function prismaTrapezoidal(larguraFrontal, larguraTraseira, profundidade, altura, zInferior, recuo) {
+      const lf = larguraFrontal - 2 * recuo;
+      const lt = larguraTraseira - 2 * recuo;
+      const p = profundidade - 2 * recuo;
+      const yf = -p / 2, yt = p / 2;
+      const mf = lf / 2, mt = lt / 2;
+      const z0 = zInferior, z1 = zInferior + altura;
+      return {
+        vertices: [
+          [-mf,yf,z0], [mf,yf,z0], [mt,yt,z0], [-mt,yt,z0],
+          [-mf,yf,z1], [mf,yf,z1], [mt,yt,z1], [-mt,yt,z1]
+        ],
+        faces: [
+          [0,1,2], [0,2,3],
+          [4,6,5], [4,7,6],
+          [0,4,5], [0,5,1],
+          [1,5,6], [1,6,2],
+          [2,6,7], [2,7,3],
+          [3,7,4], [3,4,0]
+        ]
+      };
+    }
+
+    function transladar(mesh, dx) {
+      return {
+        vertices: mesh.vertices.map(v => [v[0] + dx, v[1], v[2]]),
+        faces: mesh.faces
+      };
+    }
+
+    function raioInternoAnel(raioExterno, larguraAnel) {
+      return Math.max(raioExterno - larguraAnel, raioExterno * 0.55);
+    }
+
+    function anelNoPlanoDoEncosto(centro, raioExterno, larguraAnel, profundidade, segmentos=96) {
+      const [cx, cy, cz] = centro;
+      const raioInterno = raioInternoAnel(raioExterno, larguraAnel);
+      const verts = [];
+      for (const y of [cy - profundidade / 2, cy + profundidade / 2]) {
+        for (const r of [raioExterno, raioInterno]) {
+          for (let i = 0; i < segmentos; i++) {
+            const a = 2 * Math.PI * i / segmentos;
+            verts.push([cx + r * Math.cos(a), y, cz + r * Math.sin(a)]);
+          }
+        }
+      }
+
+      const faces = [];
+      const offForaFrente = 0;
+      const offDentroFrente = segmentos;
+      const offForaTras = 2 * segmentos;
+      const offDentroTras = 3 * segmentos;
+      for (let i = 0; i < segmentos; i++) {
+        const j = (i + 1) % segmentos;
+        const of0 = offForaFrente + i, of1 = offForaFrente + j;
+        const inf0 = offDentroFrente + i, inf1 = offDentroFrente + j;
+        const ot0 = offForaTras + i, ot1 = offForaTras + j;
+        const int0 = offDentroTras + i, int1 = offDentroTras + j;
+        faces.push(
+          [of0, of1, inf1], [of0, inf1, inf0],
+          [ot0, int1, ot1], [ot0, int0, int1],
+          [of0, ot0, ot1], [of0, ot1, of1],
+          [inf0, inf1, int1], [inf0, int1, int0]
+        );
+      }
+      return {vertices: verts, faces};
+    }
+
+    function pontoDentroDoMaterialDoAnel(centroX, y, centroZ, raioExterno, larguraAnel, direcaoX, direcaoZ, fracaoSobreposicao) {
+      const interno = raioInternoAnel(raioExterno, larguraAnel);
+      const raioContato = interno + (raioExterno - interno) * fracaoSobreposicao;
+      const n = Math.sqrt(direcaoX * direcaoX + direcaoZ * direcaoZ) || 1;
+      return [centroX + (direcaoX/n) * raioContato, y, centroZ + (direcaoZ/n) * raioContato];
+    }
+
+    function construirCadeira(parametros) {
+      const alturaTotal = parametros.altura_total_cm * CM;
+      const alturaAssento = parametros.altura_assento_cm * CM;
+      const larguraFrontal = parametros.largura_frontal_assento_cm * CM;
+      const larguraTraseira = parametros.largura_traseira_assento_cm * CM;
+      const profundidade = parametros.profundidade_assento_cm * CM;
+      const larguraEncosto = parametros.largura_encosto_cm * CM;
+      const E = parametros.espessura_haste_cm * CM;
+      const F = parametros.espessura_haste_fina_cm * CM;
+      const espessuraAlmofada = parametros.espessura_almofada_cm * CM;
+      const recuoAlmofada = parametros.recuo_almofada_cm * CM;
+      const usarCirculoGrade = parametros.circulo_no_meio_grade;
+
+      const fatorRaioCirculoGrade = lerGlobal("fator_raio_circulo_grade", 0.14);
+      const fatorSegurancaCorteCirculoGrade = lerGlobal("fator_seguranca_corte_circulo_grade", 0.55);
+      const fracaoSobreposicaoDiagonalAnel = lerGlobal("fracao_sobreposicao_diagonal_anel", 0.58);
+
+      const yTras = 0;
+      const yFrente = -profundidade;
+      const yEncosto = -E / 2;
+      const meiaFrente = larguraFrontal / 2 - E / 2;
+      const meiaTras = larguraTraseira / 2 - E / 2;
+      const meiaEncosto = larguraEncosto / 2 - E / 2;
+      const xExtEsq = -larguraEncosto / 2;
+      const xExtDir = larguraEncosto / 2;
+      const xIntEsq = xExtEsq + E;
+      const xIntDir = xExtDir - E;
+      const zTopo = alturaTotal - E / 2;
+
+      const pecas = [];
+      const zr = fracao => alturaAssento + fracao * (zTopo - alturaAssento);
+
+      function adicionar(mesh, nome, variavel, chave, grupo="estrutura") {
+        if (mesh) pecas.push({mesh, nome, variavel, chave, grupo});
+      }
+
+      const almofada = prismaTrapezoidal(larguraFrontal, larguraTraseira, profundidade, espessuraAlmofada, alturaAssento, recuoAlmofada);
+      almofada.vertices = almofada.vertices.map(v => [v[0], v[1] - profundidade / 2, v[2]]);
+      adicionar(almofada, "almofada trapezoidal", "dimensões da almofada", "almofada", "almofada");
+
+      const frenteEsq = [-meiaFrente, yFrente + E / 2, 0];
+      const frenteDir = [meiaFrente, yFrente + E / 2, 0];
+      const trasEsq = [-meiaTras, yTras - E / 2, 0];
+      const trasDir = [meiaTras, yTras - E / 2, 0];
+      const frenteEsqTopo = [frenteEsq[0], frenteEsq[1], alturaAssento];
+      const frenteDirTopo = [frenteDir[0], frenteDir[1], alturaAssento];
+      const trasEsqTopo = [trasEsq[0], trasEsq[1], alturaAssento];
+      const trasDirTopo = [trasDir[0], trasDir[1], alturaAssento];
+
+      [
+        ["perna frontal esquerda", frenteEsq, frenteEsqTopo],
+        ["perna frontal direita", frenteDir, frenteDirTopo],
+        ["perna traseira esquerda", trasEsq, trasEsqTopo],
+        ["perna traseira direita", trasDir, trasDirTopo],
+        ["travessa frontal do assento", frenteEsqTopo, frenteDirTopo],
+        ["travessa traseira do assento", trasEsqTopo, trasDirTopo],
+        ["travessa lateral esquerda do assento", frenteEsqTopo, trasEsqTopo],
+        ["travessa lateral direita do assento", frenteDirTopo, trasDirTopo]
+      ].forEach(([nome, p1, p2]) => adicionar(hasteEntre(p1, p2, E), nome, "assento/pernas", "assento_pernas"));
+
+      const zsBaixo = linspace(alturaAssento * 0.18, alturaAssento * 0.62, 5);
+      zsBaixo.forEach((z, idx) => {
+        adicionar(hasteEntre([-meiaTras, yEncosto, z], [meiaTras, yEncosto, z], F), `travessa traseira sob assento ${idx + 1}`, "zs_baixo", "travessas_sob_assento");
+      });
+
+      const zLateralBaixa = zsBaixo[1] + F * 1.15;
+      const zLateralAlta = zsBaixo[4] + F * 1.15;
+      [
+        ["lateral esquerda baixa", -meiaFrente, -meiaTras, zLateralBaixa],
+        ["lateral direita baixa", meiaFrente, meiaTras, zLateralBaixa],
+        ["lateral esquerda alta", -meiaFrente, -meiaTras, zLateralAlta],
+        ["lateral direita alta", meiaFrente, meiaTras, zLateralAlta]
+      ].forEach(([nome, xf, xt, z]) => {
+        adicionar(hasteEntre([xf, yFrente + E / 2, z], [xt, yEncosto, z], F), nome, "travessas laterais", "travessas_laterais");
+      });
+
+      adicionar(
+        hasteEntre([-meiaFrente, yFrente + E / 2, zLateralBaixa], [meiaFrente, yFrente + E / 2, zLateralBaixa], F),
+        "travessa frontal unica sob assento",
+        "z_lateral_baixa",
+        "travessas_laterais"
+      );
+
+      [
+        ["poste esquerdo do encosto", [-meiaEncosto, yEncosto, alturaAssento], [-meiaEncosto, yEncosto, zTopo]],
+        ["poste direito do encosto", [meiaEncosto, yEncosto, alturaAssento], [meiaEncosto, yEncosto, zTopo]],
+        ["travessa superior do encosto", [xExtEsq, yEncosto, zTopo], [xExtDir, yEncosto, zTopo]],
+        ["travessa inferior do encosto", [xExtEsq, yEncosto, alturaAssento], [xExtDir, yEncosto, alturaAssento]]
+      ].forEach(([nome, p1, p2]) => adicionar(hasteEntre(p1, p2, E), nome, "moldura do encosto", "moldura_encosto"));
+
+      linspace(zr(0.08), zr(0.28), 7).forEach((z, idx) => {
+        adicionar(hasteEntre([xExtEsq, yEncosto, z], [xExtDir, yEncosto, z], F), `travessa inferior do encosto ${idx + 1}`, "travessas inferiores", "travessas_inferiores");
+      });
+
+      const zBaseGrade = zr(0.76);
+      const zTopoGrade = zTopo;
+      const zTopoHasteCentral = zBaseGrade - E / 2;
+      const zAnelSup = zr(0.58);
+      const zAnelInf = zr(0.34);
+      const raioSup = larguraEncosto * 0.12;
+      const raioInf = larguraEncosto * 0.105;
+      const larguraAnelSup = F * 0.85;
+      const larguraAnelInf = F * 0.85;
+
+      adicionar(anelNoPlanoDoEncosto([0, yEncosto, zAnelSup], raioSup, larguraAnelSup, E), "anel superior", "raio_sup", "anel_superior");
+      adicionar(anelNoPlanoDoEncosto([0, yEncosto, zAnelInf], raioInf, larguraAnelInf, E), "anel inferior", "raio_inf", "anel_inferior");
+      adicionar(hasteEntre([0, yEncosto, zr(0.28)], [0, yEncosto, zTopoHasteCentral], E), "haste central continua", "z_topo_haste_central", "haste_central_continua");
+
+      [0.38, 0.49].forEach((frac, idx) => {
+        const z = zr(frac);
+        adicionar(hasteEntre([-larguraEncosto * 0.08, yEncosto, z], [larguraEncosto * 0.08, yEncosto, z], F), `barra central pequena ${idx + 1}`, "fracoes_barras_centrais", "barras_centrais");
+      });
+
+      const contatos = [
+        pontoDentroDoMaterialDoAnel(0, yEncosto, zAnelSup, raioSup, larguraAnelSup, -0.95, 0.35, fracaoSobreposicaoDiagonalAnel),
+        pontoDentroDoMaterialDoAnel(0, yEncosto, zAnelSup, raioSup, larguraAnelSup, 0.95, 0.35, fracaoSobreposicaoDiagonalAnel),
+        pontoDentroDoMaterialDoAnel(0, yEncosto, zAnelInf, raioInf, larguraAnelInf, -0.95, 0.35, fracaoSobreposicaoDiagonalAnel),
+        pontoDentroDoMaterialDoAnel(0, yEncosto, zAnelInf, raioInf, larguraAnelInf, 0.95, 0.35, fracaoSobreposicaoDiagonalAnel)
+      ];
+
+      [
+        ["diagonal superior esquerda", [-meiaEncosto, yEncosto, zr(0.72)], contatos[0]],
+        ["diagonal superior direita", [meiaEncosto, yEncosto, zr(0.72)], contatos[1]],
+        ["diagonal media esquerda", [-meiaEncosto, yEncosto, zr(0.45)], contatos[2]],
+        ["diagonal media direita", [meiaEncosto, yEncosto, zr(0.45)], contatos[3]]
+      ].forEach(([nome, p1, p2]) => adicionar(hasteEntre(p1, p2, E), nome, "diagonais", "diagonais"));
+
+      adicionar(hasteEntre([xExtEsq, yEncosto, zBaseGrade], [xExtDir, yEncosto, zBaseGrade], E), "travessa inferior da grade", "z_base_grade", "grade");
+
+      const colunasGrade = 5;
+      const linhasGrade = 5;
+      const xCentroCirculo = 0;
+      const zCentroCirculo = (zBaseGrade + zTopoGrade) / 2;
+      const raioCirculo = larguraEncosto * fatorRaioCirculoGrade;
+      const larguraAnelCirculo = F * 0.85;
+      const raioIntCirculo = raioInternoAnel(raioCirculo, larguraAnelCirculo);
+      const raioCorte = Math.min(raioCirculo - F * 0.10, raioIntCirculo + F * fatorSegurancaCorteCirculoGrade);
+
+      if (usarCirculoGrade) {
+        adicionar(anelNoPlanoDoEncosto([0, yEncosto, zCentroCirculo], raioCirculo, larguraAnelCirculo, E), "anel opcional da grade", "circulo_no_meio_grade", "circulo_grade");
+      }
+
+      linspace(xIntEsq, xIntDir, colunasGrade + 1).slice(1, -1).forEach((x, idx) => {
+        if (usarCirculoGrade) {
+          adicionarHasteVerticalGrade(adicionar, x, yEncosto, zBaseGrade, zTopoGrade, xCentroCirculo, zCentroCirculo, raioCorte, F, `haste vertical da grade ${idx + 1}`);
+        } else {
+          adicionar(hasteEntre([x, yEncosto, zBaseGrade], [x, yEncosto, zTopoGrade], F), `haste vertical da grade ${idx + 1}`, "grade", "grade");
+        }
+      });
+
+      linspace(zBaseGrade, zTopoGrade, linhasGrade + 1).slice(1, -1).forEach((z, idx) => {
+        if (usarCirculoGrade) {
+          adicionarHasteHorizontalGrade(adicionar, z, yEncosto, xExtEsq, xExtDir, xCentroCirculo, zCentroCirculo, raioCorte, F, `haste horizontal da grade ${idx + 1}`);
+        } else {
+          adicionar(hasteEntre([xExtEsq, yEncosto, z], [xExtDir, yEncosto, z], F), `haste horizontal da grade ${idx + 1}`, "grade", "grade");
+        }
+      });
+
+      return {
+        pecas,
+        medidas: {
+          larguraFrontal,
+          larguraEncosto,
+          profundidade,
+          alturaTotal,
+          alturaAssento,
+          yFrente,
+          yTras,
+          xFrenteEsq: frenteEsq[0],
+          xFrenteDir: frenteDir[0],
+          xEncostoEsq: xExtEsq,
+          xEncostoDir: xExtDir
+        }
+      };
+    }
+
+    function adicionarHasteVerticalGrade(adicionar, x, y, zMin, zMax, cx, cz, raioCorte, espessura, nome) {
+      const dx = Math.abs(x - cx);
+      if (dx >= raioCorte) {
+        adicionar(hasteEntre([x,y,zMin], [x,y,zMax], espessura), nome, "grade", "grade");
+        return;
+      }
+      const metade = Math.sqrt(Math.max(0, raioCorte * raioCorte - dx * dx));
+      const z1 = cz - metade;
+      const z2 = cz + metade;
+      if (z1 > zMin) adicionar(hasteEntre([x,y,zMin], [x,y,z1], espessura), nome + " inferior", "grade", "grade");
+      if (z2 < zMax) adicionar(hasteEntre([x,y,z2], [x,y,zMax], espessura), nome + " superior", "grade", "grade");
+    }
+
+    function adicionarHasteHorizontalGrade(adicionar, z, y, xMin, xMax, cx, cz, raioCorte, espessura, nome) {
+      const dz = Math.abs(z - cz);
+      if (dz >= raioCorte) {
+        adicionar(hasteEntre([xMin,y,z], [xMax,y,z], espessura), nome, "grade", "grade");
+        return;
+      }
+      const metade = Math.sqrt(Math.max(0, raioCorte * raioCorte - dz * dz));
+      const x1 = cx - metade;
+      const x2 = cx + metade;
+      if (x1 > xMin) adicionar(hasteEntre([xMin,y,z], [x1,y,z], espessura), nome + " esquerda", "grade", "grade");
+      if (x2 < xMax) adicionar(hasteEntre([x2,y,z], [xMax,y,z], espessura), nome + " direita", "grade", "grade");
+    }
+
+    function linspace(a, b, n) {
+      if (n <= 1) return [a];
+      const arr = [];
+      for (let i = 0; i < n; i++) arr.push(a + (b - a) * i / (n - 1));
+      return arr;
+    }
+
+
+    function lerTexturaAtiva() {
+      return document.getElementById("usarTextura").checked && texturaCanvas && texturaCtx;
+    }
+
+    function statusTextura(msg) {
+      const el = document.getElementById("statusTextura");
+      if (el) el.textContent = msg;
+    }
+
+    function carregarTexturaDeImagem(img, nome) {
+      const canvas = document.createElement("canvas");
+      const maxSide = 512;
+      const scale = Math.min(1, maxSide / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+      canvas.width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+      canvas.height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+      const ctx = canvas.getContext("2d", {willReadFrequently: true});
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // Se a imagem vier de outro domínio sem CORS, esta chamada gera erro.
+      ctx.getImageData(0, 0, 1, 1);
+
+      texturaCanvas = canvas;
+      texturaCtx = ctx;
+      texturaNome = nome || "textura carregada";
+      document.getElementById("usarTextura").checked = true;
+      const hexMedio = calcularEExibirCorTextura();
+      statusTextura(`Textura ativa: ${texturaNome} (${canvas.width}×${canvas.height}px). Cor percebida: ${hexMedio || "não calculada"}.`);
+      renderizar();
+    }
+
+    function carregarTexturaArquivo(file) {
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            carregarTexturaDeImagem(img, file.name);
+          } catch (err) {
+            statusTextura("Não consegui ler essa imagem.");
+            alert("Não consegui ler essa imagem. Tente outro arquivo.");
+          }
+        };
+        img.onerror = () => {
+          statusTextura("Erro ao carregar o arquivo de imagem.");
+          alert("Erro ao carregar o arquivo de imagem.");
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function carregarTexturaURL(url) {
+      const limpo = (url || "").trim();
+      if (!limpo) return;
+      statusTextura("Carregando URL da textura...");
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => {
+        try {
+          carregarTexturaDeImagem(img, limpo);
+        } catch (err) {
+          statusTextura("A imagem carregou, mas o navegador bloqueou a leitura por CORS.");
+          alert("A imagem carregou, mas o navegador bloqueou a leitura por CORS. Salve a imagem no computador/celular e use o botão de carregar arquivo.");
+        }
+      };
+      img.onerror = () => {
+        statusTextura("Não consegui carregar essa URL.");
+        alert("Não consegui carregar essa URL. Confira se é uma URL direta de imagem, terminando em .jpg, .jpeg, .png ou .webp.");
+      };
+      img.src = limpo;
+    }
+
+    function corPixelTextura(u, v) {
+      if (!texturaCtx) return corAlmofada();
+
+      const repeticao = Math.max(0.2, lerGlobal("repeticaoTextura", 1));
+      let uu = (u * repeticao) % 1;
+      let vv = (v * repeticao) % 1;
+      if (uu < 0) uu += 1;
+      if (vv < 0) vv += 1;
+
+      const x = Math.min(texturaCanvas.width - 1, Math.max(0, Math.floor(uu * texturaCanvas.width)));
+      const y = Math.min(texturaCanvas.height - 1, Math.max(0, Math.floor(vv * texturaCanvas.height)));
+      const px = texturaCtx.getImageData(x, y, 1, 1).data;
+      return `rgb(${px[0]},${px[1]},${px[2]})`;
+    }
+
+    function srgbParaLinear(v) {
+      const c = v / 255;
+      return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    }
+
+    function linearParaSrgb(v) {
+      const c = v <= 0.0031308 ? 12.92 * v : 1.055 * Math.pow(v, 1 / 2.4) - 0.055;
+      return Math.max(0, Math.min(255, Math.round(c * 255)));
+    }
+
+    function rgbParaHex(r, g, b) {
+      return "#" + [r, g, b].map(v => {
+        const s = Math.max(0, Math.min(255, Math.round(v))).toString(16);
+        return s.length === 1 ? "0" + s : s;
+      }).join("");
+    }
+
+    function corPercebidaTextura() {
+      if (!texturaCtx || !texturaCanvas) return null;
+
+      const w = texturaCanvas.width;
+      const h = texturaCanvas.height;
+      const data = texturaCtx.getImageData(0, 0, w, h).data;
+
+      let r = 0, g = 0, b = 0, pesoTotal = 0;
+
+      // Média em espaço linear, com leve ponderação por luminância percebida.
+      // Isso tende a representar melhor a cor geral do tecido do que uma média RGB crua.
+      for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3] / 255;
+        if (alpha <= 0.01) continue;
+
+        const lr = srgbParaLinear(data[i]);
+        const lg = srgbParaLinear(data[i + 1]);
+        const lb = srgbParaLinear(data[i + 2]);
+        const luminancia = 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+        const peso = alpha * (0.65 + 0.35 * Math.sqrt(Math.max(0, luminancia)));
+
+        r += lr * peso;
+        g += lg * peso;
+        b += lb * peso;
+        pesoTotal += peso;
+      }
+
+      if (pesoTotal <= 0) return null;
+
+      return rgbParaHex(
+        linearParaSrgb(r / pesoTotal),
+        linearParaSrgb(g / pesoTotal),
+        linearParaSrgb(b / pesoTotal)
+      );
+    }
+
+    function atualizarAmostraCorTextura(hex) {
+      const swatch = document.getElementById("amostraCorTextura");
+      const texto = document.getElementById("valorCorTextura");
+      if (!swatch || !texto) return;
+
+      if (hex) {
+        swatch.style.background = hex;
+        texto.textContent = `Cor percebida: ${hex}`;
+      } else {
+        swatch.style.background = "#b95055";
+        texto.textContent = "Cor percebida: nenhuma textura carregada.";
+      }
+    }
+
+    function calcularEExibirCorTextura() {
+      const hex = corPercebidaTextura();
+      atualizarAmostraCorTextura(hex);
+      return hex;
+    }
+
+    function misturarPontos(a, b, t) {
+      return [
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+        a[2] + (b[2] - a[2]) * t
+      ];
+    }
+
+    function criarTexturaSuperiorAlmofada(mesh, nome, rotulo) {
+      if (!lerTexturaAtiva()) return null;
+
+      const nTopo = Math.max(8, Math.min(80, Math.round(lerGlobal("resolucaoTextura", 30))));
+      const nLateralU = nTopo;
+      const nLateralV = Math.max(3, Math.round(nTopo * 0.22));
+
+      // A almofada trapezoidal vem do código original com:
+      // 0,1,2,3 = base inferior; 4,5,6,7 = topo.
+      const frenteInfEsq = mesh.vertices[0];
+      const frenteInfDir = mesh.vertices[1];
+      const trasInfDir = mesh.vertices[2];
+      const trasInfEsq = mesh.vertices[3];
+      const frenteSupEsq = mesh.vertices[4];
+      const frenteSupDir = mesh.vertices[5];
+      const trasSupDir = mesh.vertices[6];
+      const trasSupEsq = mesh.vertices[7];
+
+      const vertices = [];
+      const faces = [];
+      const facecolor = [];
+
+      function deslocarFace(p, normal, offset = 1.05) {
+        return [p[0] + normal[0] * offset, p[1] + normal[1] * offset, p[2] + normal[2] * offset];
+      }
+
+      function normalDaFace(a, b, d) {
+        return normalize(cross(sub(b, a), sub(d, a)));
+      }
+
+      function adicionarSuperficieQuad(nomeFace, a, b, c, d, nU, nV, normal, escalaU = 1, escalaV = 1) {
+        const inicio = vertices.length;
+
+        for (let j = 0; j <= nV; j++) {
+          const v = j / nV;
+          const esquerda = misturarPontos(a, d, v);
+          const direita = misturarPontos(b, c, v);
+
+          for (let i = 0; i <= nU; i++) {
+            const u = i / nU;
+            vertices.push(deslocarFace(misturarPontos(esquerda, direita, u), normal));
+          }
+        }
+
+        for (let j = 0; j < nV; j++) {
+          for (let i = 0; i < nU; i++) {
+            const p0 = inicio + j * (nU + 1) + i;
+            const p1 = p0 + 1;
+            const p2 = p0 + (nU + 1);
+            const p3 = p2 + 1;
+            faces.push([p0, p1, p3], [p0, p3, p2]);
+
+            // Cada face usa coordenadas locais. Nas laterais, o eixo vertical da textura
+            // acompanha a espessura da almofada, em vez de ficar apenas numa cor lisa.
+            const cor = corPixelTextura(((i + 0.5) / nU) * escalaU, ((j + 0.5) / nV) * escalaV);
+            facecolor.push(cor, cor);
+          }
+        }
+      }
+
+      // Topo: mapa a textura no plano do assento.
+      adicionarSuperficieQuad(
+        "topo",
+        frenteSupEsq, frenteSupDir, trasSupDir, trasSupEsq,
+        nTopo, nTopo,
+        [0, 0, 1],
+        1, 1
+      );
+
+      // Laterais: agora também recebem textura.
+      // Ordem dos pontos: canto inferior esquerdo, inferior direito, superior direito, superior esquerdo.
+      adicionarSuperficieQuad(
+        "frente",
+        frenteInfEsq, frenteInfDir, frenteSupDir, frenteSupEsq,
+        nLateralU, nLateralV,
+        normalDaFace(frenteInfEsq, frenteInfDir, frenteSupDir),
+        1, 0.35
+      );
+
+      adicionarSuperficieQuad(
+        "traseira",
+        trasInfDir, trasInfEsq, trasSupEsq, trasSupDir,
+        nLateralU, nLateralV,
+        normalDaFace(trasInfDir, trasInfEsq, trasSupEsq),
+        1, 0.35
+      );
+
+      adicionarSuperficieQuad(
+        "lateral esquerda",
+        trasInfEsq, frenteInfEsq, frenteSupEsq, trasSupEsq,
+        nLateralU, nLateralV,
+        normalDaFace(trasInfEsq, frenteInfEsq, frenteSupEsq),
+        1, 0.35
+      );
+
+      adicionarSuperficieQuad(
+        "lateral direita",
+        frenteInfDir, trasInfDir, trasSupDir, frenteSupDir,
+        nLateralU, nLateralV,
+        normalDaFace(frenteInfDir, trasInfDir, trasSupDir),
+        1, 0.35
+      );
+
+      return {
+        type: "mesh3d",
+        x: vertices.map(p => p[0]),
+        y: vertices.map(p => p[1]),
+        z: vertices.map(p => p[2]),
+        i: faces.map(f => f[0]),
+        j: faces.map(f => f[1]),
+        k: faces.map(f => f[2]),
+        facecolor,
+        flatshading: true,
+        lighting: {ambient: 0.65, diffuse: 0.8, roughness: 0.85, specular: 0.05},
+        name: `${rotulo} - textura completa da almofada`,
+        meta: {tipo: "peca", chave: "almofada"},
+        hovertemplate: `<b>textura completa da almofada</b><br>Cadeira: ${rotulo}<br>Imagem: <b>${texturaNome || "textura"}</b><extra></extra>`,
+        showlegend: false
+      };
+    }
+
+    function traceMesh(mesh, nome, cor, hover, meta) {
+      const x = mesh.vertices.map(v => v[0]);
+      const y = mesh.vertices.map(v => v[1]);
+      const z = mesh.vertices.map(v => v[2]);
+      return {
+        type: "mesh3d",
+        x, y, z,
+        i: mesh.faces.map(f => f[0]),
+        j: mesh.faces.map(f => f[1]),
+        k: mesh.faces.map(f => f[2]),
+        color: cor,
+        opacity: 1,
+        flatshading: true,
+        lighting: {ambient: 0.35, diffuse: 0.8, roughness: 0.55, specular: 0.25},
+        name: nome,
+        meta,
+        hovertemplate: hover + "<extra></extra>",
+        showlegend: false
+      };
+    }
+
+    function elementosAtivos() {
+      const obj = {};
+      document.querySelectorAll(".elementoToggle").forEach(cb => obj[cb.dataset.key] = cb.checked);
+      return obj;
+    }
+
+    function adicionarTracosModelo(data, modelo, dx, rotulo, ativos) {
+      for (const p of modelo.pecas) {
+        if (!ativos[p.chave]) continue;
+        const mesh = transladar(p.mesh, dx);
+        const cor = p.grupo === "almofada" ? corAlmofada() : "black";
+        const hover = `<b>${p.nome}</b><br>Cadeira: ${rotulo}<br>Editar: <b>${p.variavel}</b>`;
+        data.push(traceMesh(mesh, `${rotulo} - ${p.nome}`, cor, hover, {tipo: "peca", chave: p.chave}));
+
+        if (p.grupo === "almofada") {
+          const textura = criarTexturaSuperiorAlmofada(mesh, p.nome, rotulo);
+          if (textura) data.push(textura);
+        }
+      }
+    }
+
+    const coresMedidas = {
+      altura: "#a00000",
+      profundidade: "#b000a8",
+      larguraFrontal: "#023363",
+      larguraEncosto: "#6E9099"
+    };
+
+    function addLine(data, p1, p2, cor, texto, textoPos) {
+      data.push({
+        type: "scatter3d",
+        mode: "lines",
+        x: [p1[0], p2[0]],
+        y: [p1[1], p2[1]],
+        z: [p1[2], p2[2]],
+        line: {width: 7, color: cor},
+        hoverinfo: "skip",
+        showlegend: false,
+        meta: {tipo: "medida"}
+      });
+      data.push({
+        type: "scatter3d",
+        mode: "text",
+        x: [textoPos[0]],
+        y: [textoPos[1]],
+        z: [textoPos[2]],
+        text: [texto],
+        textfont: {size: 16, color: cor, family: "system-ui, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif"},
+        textposition: "middle center",
+        hoverinfo: "skip",
+        showlegend: false,
+        meta: {tipo: "medida"}
+      });
+    }
+
+    function adicionarMedidas(data, modelo, dx) {
+      if (!medidasVisiveis) return;
+      const m = modelo.medidas;
+      const alt = m.alturaTotal;
+      const prof = m.profundidade;
+      const largFrente = m.larguraFrontal;
+      const largEncosto = m.larguraEncosto;
+
+      const xAlt = m.xEncostoEsq - 60 + dx;
+      const yAlt = m.yTras - 24;
+      addLine(
+        data,
+        [xAlt, yAlt, 0],
+        [xAlt, yAlt, alt],
+        coresMedidas.altura,
+        `${Math.round(alt/10)} cm`,
+        [xAlt - 82, yAlt - 10, alt / 2]
+      );
+
+      const xProf = m.xEncostoDir + 54 + dx;
+      addLine(
+        data,
+        [xProf, m.yTras, 0],
+        [xProf, m.yFrente, 0],
+        coresMedidas.profundidade,
+        `${Math.round(prof/10)} cm`,
+        [xProf + 48, (m.yTras + m.yFrente) / 2, 70]
+      );
+
+      const yLarg = m.yFrente - 42;
+      addLine(
+        data,
+        [m.xFrenteEsq + dx, yLarg, 0],
+        [m.xFrenteDir + dx, yLarg, 0],
+        coresMedidas.larguraFrontal,
+        `${Math.round(largFrente/10)} cm`,
+        [dx, yLarg - 70, 42]
+      );
+
+      const yEnc = m.yTras + 24;
+      const zEnc = alt + 20;
+      addLine(
+        data,
+        [m.xEncostoEsq + dx, yEnc, zEnc],
+        [m.xEncostoDir + dx, yEnc, zEnc],
+        coresMedidas.larguraEncosto,
+        `${Math.round(largEncosto/10)} cm`,
+        [dx, yEnc + 10, zEnc + 62]
+      );
+    }
+
+    function layoutBase(camera) {
+      return {
+        autosize: true,
+        showlegend: false,
+        paper_bgcolor: "#b8c7cd",
+        plot_bgcolor: "#b8c7cd",
+        margin: {l: 0, r: 0, t: 0, b: 0},
+        scene: {
+          xaxis: {
+            title: "Largura / X mm",
+            showbackground: true,
+            backgroundcolor: "#c3ced3",
+            gridcolor: "#a6b4bb",
+            zerolinecolor: "#68777f",
+            linecolor: "#68777f",
+            color: "#182027",
+            tickfont: {color: "#182027"},
+            titlefont: {color: "#182027"}
+          },
+          yaxis: {
+            title: "Profundidade / Y mm",
+            showbackground: true,
+            backgroundcolor: "#c3ced3",
+            gridcolor: "#a6b4bb",
+            zerolinecolor: "#68777f",
+            linecolor: "#68777f",
+            color: "#182027",
+            tickfont: {color: "#182027"},
+            titlefont: {color: "#182027"}
+          },
+          zaxis: {
+            title: "Altura / Z mm",
+            showbackground: true,
+            backgroundcolor: "#c3ced3",
+            gridcolor: "#a6b4bb",
+            zerolinecolor: "#68777f",
+            linecolor: "#68777f",
+            color: "#182027",
+            tickfont: {color: "#182027"},
+            titlefont: {color: "#182027"}
+          },
+          bgcolor: "#b8c7cd",
+          aspectmode: "data",
+          camera
+        },
+        uirevision: "cadeiras-parametricas"
+      };
+    }
+
+    const initialCamera = {eye: {x: 1.8, y: -2.4, z: 1.1}, center: {x: 0, y: 0, z: 0.35}};
+
+    const config = {
+      responsive: true,
+      displaylogo: false,
+      scrollZoom: true,
+      doubleClick: "reset",
+      modeBarButtonsToRemove: ["lasso2d", "select2d"]
+    };
+
+    function renderizar() {
+      const cameraAtual = plotDiv._fullLayout?.scene?.camera || initialCamera;
+      const A = lerCadeira("A", defaultsA);
+      const B = lerCadeira("B", defaultsB);
+      const ativos = elementosAtivos();
+      const espacamentoMM = lerGlobal("espacamento_cm", 55) * 10;
+      const xA = -espacamentoMM / 2;
+      const xB = espacamentoMM / 2;
+
+      const modeloA = construirCadeira(A);
+      const modeloB = construirCadeira(B);
+      const data = [];
+
+      adicionarTracosModelo(data, modeloA, xA, A.rotulo, ativos);
+      adicionarTracosModelo(data, modeloB, xB, B.rotulo, ativos);
+      adicionarMedidas(data, modeloA, xA);
+      adicionarMedidas(data, modeloB, xB);
+
+      Plotly.react(plotDiv, data, layoutBase(cameraAtual), config).then(() => {
+        Plotly.Plots.resize(plotDiv);
+      });
+    }
+
+    document.getElementById("arquivoTextura").addEventListener("change", e => {
+      carregarTexturaArquivo(e.target.files && e.target.files[0]);
+    });
+
+    document.getElementById("carregarUrlTexturaBtn").addEventListener("click", () => {
+      carregarTexturaURL(document.getElementById("urlTextura").value);
+    });
+
+    document.getElementById("limparTexturaBtn").addEventListener("click", () => {
+      texturaCanvas = null;
+      texturaCtx = null;
+      texturaNome = "";
+      document.getElementById("usarTextura").checked = false;
+      document.getElementById("arquivoTextura").value = "";
+      atualizarAmostraCorTextura(null);
+      statusTextura("Nenhuma textura carregada.");
+      renderizar();
+    });
+
+    document.getElementById("usarCorMediaTexturaBtn").addEventListener("click", () => {
+      const hex = calcularEExibirCorTextura();
+      if (!hex) {
+        alert("Carregue uma textura primeiro para extrair a cor percebida.");
+        return;
+      }
+      document.getElementById("hexAlmofada").value = hex;
+      document.getElementById("corAlmofada").value = hex;
+      document.getElementById("usarTextura").checked = false;
+      statusTextura(`Cor percebida aplicada como cor sólida da almofada: ${hex}.`);
+      renderizar();
+    });
+
+    document.getElementById("usarTextura").addEventListener("change", renderizar);
+    document.getElementById("repeticaoTextura").addEventListener("change", renderizar);
+    document.getElementById("resolucaoTextura").addEventListener("change", renderizar);
+
+    document.getElementById("atualizarBtn").addEventListener("click", renderizar);
+
+    document.querySelectorAll("input").forEach(el => {
+      el.addEventListener("change", renderizar);
+    });
+
+    document.getElementById("resetBtn").addEventListener("click", () => {
+      Plotly.relayout(plotDiv, {"scene.camera": initialCamera});
+    });
+
+    document.getElementById("ocultarMedidasBtn").addEventListener("click", e => {
+      medidasVisiveis = !medidasVisiveis;
+      e.currentTarget.textContent = medidasVisiveis ? "Ocultar medidas" : "Mostrar medidas";
+      renderizar();
+    });
+
+    document.getElementById("abrirPainel").addEventListener("click", () => {
+      document.body.classList.toggle("painel-aberto");
+      setTimeout(() => Plotly.Plots.resize(plotDiv), 220);
+    });
+
+    window.addEventListener("resize", () => Plotly.Plots.resize(plotDiv));
+
+    Plotly.newPlot(plotDiv, [], layoutBase(initialCamera), config).then(renderizar);
+  </script>
+</body>
+</html>
